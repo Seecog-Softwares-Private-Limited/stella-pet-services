@@ -3,11 +3,11 @@ const config = require('../config/env');
 
 async function migrate() {
   let connection;
-  
+
   try {
     console.log('🔄 Starting database migration...');
     console.log(`📊 Database: ${config.db.database}@${config.db.host}:${config.db.port}`);
-    
+
     // Connect without database first to create it if needed
     connection = await mysql.createConnection({
       host: config.db.host,
@@ -19,9 +19,9 @@ async function migrate() {
     // Create database if it doesn't exist
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${config.db.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
     console.log(`✅ Database '${config.db.database}' ready`);
-    
+
     await connection.end();
-    
+
     // Connect to the database
     connection = await mysql.createConnection({
       host: config.db.host,
@@ -62,6 +62,19 @@ async function migrate() {
         INDEX idx_sort_order (sort_order)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+    // Ensure older databases that were created without `sort_order` get the column
+    try {
+      const [colCheck] = await connection.query(
+        `SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'services' AND COLUMN_NAME = 'sort_order'`,
+        [config.db.database]
+      );
+      if (colCheck && colCheck[0] && colCheck[0].cnt === 0) {
+        await connection.query(`ALTER TABLE services ADD COLUMN sort_order INT DEFAULT 0`);
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not add sort_order column on services:', err.message);
+    }
+
     console.log('✅ Table: services');
 
     // Create pricing_plans table
@@ -117,7 +130,7 @@ async function migrate() {
 
     await connection.end();
     console.log('\n✅ Migration completed successfully!\n');
-    
+
   } catch (error) {
     console.error('\n❌ Migration error:', error.message);
     console.error('Stack:', error.stack);
