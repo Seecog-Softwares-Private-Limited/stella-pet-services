@@ -25,7 +25,7 @@ if (missing.length > 0) {
   console.error('DB_PORT_STAGE=3306');
   console.error('DB_NAME_STAGE=stella_pet_services');
   console.error('DB_USER_STAGE=root');
-  console.error('DB_PASSWORD_STAGE=');
+  console.error('DB_PASSWORD_STAGE=1234');
   console.error('\nOr copy .env.example to .env and update values\n');
   process.exit(1);
 }
